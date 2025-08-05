@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Livraison Iso-Slab</title>
+  <!-- Google Maps API with your provided key -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC7lIug18kthgv4ZXOPz3x1lwXxepbphj8&libraries=places"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2em;
+      background-color: #f8f8f8;
+    }
+    .card {
+      background: white;
+      padding: 2em;
+      border-radius: 15px;
+      max-width: 500px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      padding: 10px;
+      font-size: 1em;
+      margin-top: 1em;
+      width: 100%;
+    }
+    .result {
+      margin-top: 1em;
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Livraison Iso-Slab</h2>
+    <label for="address">Adresse du client :</label>
+    <input type="text" id="address" placeholder="Ex: 123 rue Principale, Montréal">
+    <button onclick="calculateDelivery()">Calculer</button>
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    // Point de départ fixe pour Iso‑Slab
+    const ORIGIN = "65 Rte 105, Wakefield, QC J0X 3G0";
+    // Tarif par kilomètre en dollars
+    const PRICE_PER_KM = 3.75;
+    // Frais fixes (restent) en dollars
+    const FIXED_FEE = 50;
+
+    /**
+     * Calcule la distance entre l'origine et l'adresse saisie
+     * puis calcule un montant final arrondi à la tranche de 50$ supérieure.
+     */
+    function calculateDelivery() {
+      const address = document.getElementById("address").value.trim();
+      const resultDiv = document.getElementById("result");
+      if (!address) {
+        resultDiv.innerText = "Veuillez entrer une adresse valide.";
+        return;
+      }
+      const service = new google.maps.DistanceMatrixService();
+      service.getDistanceMatrix({
+        origins: [ORIGIN],
+        destinations: [address],
+        travelMode: 'DRIVING',
+        unitSystem: google.maps.UnitSystem.METRIC
+      }, (response, status) => {
+        if (status !== 'OK') {
+          resultDiv.innerText = "Erreur : service indisponible.";
+          return;
+        }
+        const element = response.rows[0].elements[0];
+        if (element.status !== 'OK') {
+          resultDiv.innerText = "Erreur : adresse invalide ou non reconnue.";
+          return;
+        }
+        const distanceInMeters = element.distance.value;
+        // On arrondit la distance en km vers le haut (ex: 12.3 → 13)
+        const distanceKm = Math.ceil(distanceInMeters / 1000);
+        // Coût sans arrondi final
+        const rawCost = (distanceKm * PRICE_PER_KM) + FIXED_FEE;
+        // Arrondir vers le haut à la tranche de 50$ la plus proche
+        const roundedCost = Math.ceil(rawCost / 50) * 50;
+        // Afficher seulement le prix total arrondi suivi de "+Taxes"
+        // Le texte « +Taxes » indique que des taxes s'ajouteront au montant calculé.
+        resultDiv.innerHTML = `<strong>Total : ${roundedCost.toFixed(0)} $ + Taxes</strong>`;
+      });
+    }
+  </script>
+</body>
+</html>
